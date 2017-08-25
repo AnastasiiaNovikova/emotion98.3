@@ -1,0 +1,10 @@
+default: &default
+  adapter: mysql
+  username: root
+  password: password
+  host: 127.0.0.1
+  port: 3306
+
+development:
+  <<: *default
+  database: emotion98.3
