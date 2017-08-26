@@ -24,7 +24,7 @@ type envConfig struct {
 }
 
 func (c envConfig) ConnString() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		c.Username, c.Password, c.Host, c.Port, c.Database)
 }
 

@@ -2,6 +2,7 @@ package user
 
 import (
 	"db"
+	"log"
 
 	"models/comment"
 	"models/picture"
@@ -13,9 +14,8 @@ import (
 type User struct {
 	gorm.Model
 
-	Nickname     string
+	Nickname     string `gorm:"index"`
 	Email        string
-	Password     string
 	Pictures     []picture.Picture `gorm:"ForeignKey:UserID"`
 	CommentsLeft []comment.Comment `gorm:"ForeignKey:AuthorID"`
 }
@@ -24,43 +24,37 @@ func init() {
 	db.Get().AutoMigrate(&User{})
 }
 
-// AddUser adds new user to the database
-func (usr *User) AddUser() error {
+// Add new user to the database
+func (usr *User) Add() error {
 	return db.Get().Create(usr).Error
 }
 
-// Код ниже уязвим к SQL injection и так-то не использует ORM
+// GetByID finds user (when you are sure that it exists)
+func GetByID(id int) *User {
+	var usr User
+	db.Get().First(&usr, id)
+	return &usr
+}
 
-// func addUser(u User) {
-// 	exec(fmt.Sprintf(`INSERT INTO users (
-// 		phone,
-// 		email,
-// 		name,
-// 		surname,
-// 		gender,
-// 		birth_date,
-// 		registration_date,
-// 		created_at,
-// 		updated_at
-// 	) values (
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s',
-// 		'%s'
-// 	)`,
-// 		u.Phone,
-// 		u.Email,
-// 		u.Name,
-// 		u.Surname,
-// 		u.Gender,
-// 		formatTime(u.BirthDate),
-// 		formatTime(u.RegistrationDate),
-// 		formatTime(u.CreatedAt),
-// 		formatTime(u.UpdatedAt),
-// 	))
-// }
+// Get user by nickname
+func Get(nickname string) *User {
+	usr := User{}
+	db.Get().Where("nickname = ?", nickname).First(&usr)
+	if usr.Nickname == nickname {
+		log.Printf("User found, id = %d\n", usr.ID)
+		return &usr
+	}
+	log.Println("User not found")
+	return nil
+}
+
+// GetPictures of a user
+func GetPictures(nickname string) []picture.Picture {
+	usr := Get(nickname)
+	if usr != nil {
+		var pictures []picture.Picture
+		db.Get().Model(&usr).Related(&pictures)
+		return pictures
+	}
+	return nil
+}
