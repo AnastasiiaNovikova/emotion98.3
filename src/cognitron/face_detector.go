@@ -16,16 +16,10 @@ const filtersPath string = "../filters/"
 
 var faceDetectCascade *opencv.HaarCascade
 
-// var faceDet2 *opencv.HaarCascade
-// var faceDet3 *opencv.HaarCascade
-// var faceDet4 *opencv.HaarCascade
 var emotions []string
 
 func init() {
 	faceDetectCascade = opencv.LoadHaarClassifierCascade(filtersPath + "f_haarcascade_frontalface_alt.xml")
-	// faceDet2 = opencv.LoadHaarClassifierCascade("haarcascade_frontalface_alt2.xml")
-	// faceDet3 = opencv.LoadHaarClassifierCascade(filtersPath + "haarcascade_frontalface_alt.xml")
-	// faceDet4 = opencv.LoadHaarClassifierCascade(filtersPath + "haarcascade_frontalface_alt_tree.xml")
 	emotions = []string{
 		"neutral", "anger", "disgust", "fear", "happiness", "sadness", "surprise",
 	}
@@ -82,29 +76,6 @@ func PreprocessDatabase() {
 			opencv.SaveImage(path.Join(basePath+emotionsFolder, newName), faceFrame, nil)
 		}
 	}
-
-	// def detect_faces(emotion):
-	//     files = glob.glob("sorted_set\\%s\\*" %emotion) #Get list of all images with emotion
-	//
-	//     filenumber = 0
-	//     for f in files:
-	//
-	//
-	//
-	//         #Cut and save face
-	//         for (x, y, w, h) in facefeatures: #get coordinates and size of rectangle containing face
-	//             print "face found in file: %s" %f
-	//             gray = gray[y:y+h, x:x+w] #Cut the frame to size
-	//
-	//             try:
-	//                 out = cv2.resize(gray, (350, 350)) #Resize face so all images have same size
-	//                 cv2.imwrite("dataset\\%s\\%s.jpg" %(emotion, filenumber), out) #Write image
-	//             except:
-	//                pass #If error, pass file
-	//         filenumber += 1 #Increment image number
-	//
-	// for emotion in emotions:
-	//     detect_faces(emotion) #Call functiona
 }
 
 // DrawFaceFrame draws a frame around the face on an image

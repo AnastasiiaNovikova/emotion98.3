@@ -289,9 +289,6 @@ func getCommentsHandler(w http.ResponseWriter, r *http.Request) {
 // RunServer launches HTTP server
 func RunServer(listenAddr string) {
 	log.Println("Starting HTTP server on " + listenAddr)
-	//http.HandleFunc("/json/", myJSONHandler)
-	// http.HandleFunc("/", handler)
-
 	http.HandleFunc("/detect_face", cognitronHandler)
 	http.HandleFunc("/image", getImageHandler)
 	http.HandleFunc("/images_list", getImagesListHandler)
