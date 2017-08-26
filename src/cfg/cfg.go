@@ -47,8 +47,8 @@ func GetYamlConfig(name string, config interface{}) error {
 // App config
 type App struct {
 	Cognitron struct {
-		MaxJobs string `yaml:"max_jobs"`
-		Timeout int    `yaml:"timeout"`
+		MaxJobs int `yaml:"max_jobs"`
+		Timeout int `yaml:"timeout"`
 	}
 }
 

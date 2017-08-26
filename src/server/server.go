@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"cfg"
 	"cognitron"
 	"db"
 	"encoding/json"
@@ -15,7 +16,32 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jirfag/gointensive/lec3/2_http_pool/workers"
 )
+
+// IPool is a magic interface for WorkerPool
+type IPool interface {
+	Size() int
+	Run()
+	AddTaskSyncTimed(f workers.Func, timeout time.Duration) (interface{}, error)
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+var wp IPool
+var requestWaitInQueueTimeout = 0 * time.Microsecond
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+
+	numOfWorkers := cfg.GetApp().Cognitron.MaxJobs
+	timeout := time.Duration(cfg.GetApp().Cognitron.Timeout)
+	requestWaitInQueueTimeout = timeout * time.Millisecond
+
+	wp = workers.NewPool(numOfWorkers)
+	wp.Run()
+}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
@@ -59,12 +85,6 @@ func writeJpegFile(w http.ResponseWriter, path string) {
 	}
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 func randStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
@@ -76,14 +96,14 @@ func randStringBytes(n int) string {
 func dumpJpegImage(r *http.Request) string {
 	file, _, err := r.FormFile("image")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error retrieving image: " + err.Error())
 		return ""
 	}
 	defer file.Close()
 	newFilename := "../stored_images/" + randStringBytes(42) + ".jpg"
 	f, err := os.OpenFile(newFilename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error writing image: " + err.Error())
 		return ""
 	}
 	defer f.Close()
@@ -92,36 +112,43 @@ func dumpJpegImage(r *http.Request) string {
 }
 
 func cognitronHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		return
-	}
+	_, err := wp.AddTaskSyncTimed(func() interface{} {
+		if r.Method != "POST" {
+			return nil
+		}
+		// request read
+		r.ParseMultipartForm(32 << 20)
+		incomingFilename := dumpJpegImage(r)
+		strUserID := r.FormValue("user_id")
+		log.Println("Image name = " + incomingFilename)
+		log.Println("UserID = " + strUserID)
+		userID, err := strconv.ParseInt(strUserID, 10, 64)
+		if err != nil {
+			log.Println("Error retrieving user_id: " + err.Error())
+			userID = 0
+		}
+		log.Println("Image dumped")
 
-	// request read
-	r.ParseMultipartForm(32 << 20)
-	incomingFilename := dumpJpegImage(r)
-	strUserID := r.FormValue("user_id")
-	log.Println("UserID = " + strUserID)
-	userID, err := strconv.ParseInt(strUserID, 10, 64)
+		// recognition/processing
+		cognitron.DrawFaceFrame(incomingFilename)
+		log.Println("Face recognized")
+
+		// storing in database
+		p := picture.Picture{
+			UserID: db.Int64FK(int64(userID)),
+			URL:    incomingFilename,
+		}
+		p.Save()
+		log.Println("Picture URL stored in DB")
+
+		// response write
+		writeJpegFile(w, incomingFilename)
+		return nil
+	}, requestWaitInQueueTimeout)
+
 	if err != nil {
-		log.Println("Error retrieving user_id: " + err.Error())
-		userID = 100501
+		http.Error(w, fmt.Sprintf("error: %s!\n", err), 500)
 	}
-	log.Println("Image dumped")
-
-	// recognition/processing
-	cognitron.DrawFaceFrame(incomingFilename)
-	log.Println("Face recognized")
-
-	// storing in database
-	p := picture.Picture{
-		UserID: db.Int64FK(int64(userID)),
-		URL:    incomingFilename,
-	}
-	p.Save()
-	log.Println("Picture URL stored in DB")
-
-	// response write
-	writeJpegFile(w, incomingFilename)
 }
 
 // RunServer launches HTTP server
