@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Comment under a picture
 type Comment struct {
 	gorm.Model
 
@@ -15,9 +16,19 @@ type Comment struct {
 	Text      string
 }
 
-func (c *Comment) Save() error {
-	// Ну такое... при сохранении комментария каждый раз создается новый???
+// Leave a comment
+func (c *Comment) Leave() error {
 	return db.Get().Create(c).Error
+}
+
+// Leave a comment from scratch
+func Leave(authorID int, pictureID int, text string) error {
+	cmt := Comment{
+		AuthorID:  db.Int64FK(int64(authorID)),
+		PictureID: db.Int64FK(int64(pictureID)),
+		Text:      text,
+	}
+	return db.Get().Create(&cmt).Error
 }
 
 func init() {

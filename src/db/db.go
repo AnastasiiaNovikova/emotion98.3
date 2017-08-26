@@ -7,6 +7,8 @@ import (
 	"log"
 
 	"github.com/jinzhu/gorm"
+
+	// Additional import for MySQL driver
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
@@ -60,10 +62,12 @@ func initDB() error {
 	return nil
 }
 
+// Get returns data context
 func Get() *gorm.DB {
 	return db
 }
 
+// Int64FK constructs nullable int64
 func Int64FK(v int64) sql.NullInt64 {
 	return sql.NullInt64{
 		Int64: v,
